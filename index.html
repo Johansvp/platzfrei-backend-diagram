@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlatzFrei – Backend Architektur (Firebase)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0F1923;
+    color: #fff;
+    padding: 32px 24px 48px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .header p {
+    color: #8896A6;
+    font-size: 14px;
+    margin-top: 6px;
+  }
+  .badge {
+    display: inline-block;
+    background: #C8531A;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-top: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: #8896A6;
+    font-weight: 600;
+  }
+  .leg-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ── MAIN GRID ── */
+  .diagram {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 0;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ── LAYER LABELS ── */
+  .layer-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #46566B;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  /* ── FRONTEND LAYER ── */
+  .frontend-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .fe-block {
+    background: #1E2A38;
+    border: 1.5px solid #2E3F52;
+    border-radius: 14px;
+    padding: 14px 16px;
+    min-width: 140px;
+    flex: 1;
+    max-width: 170px;
+  }
+  .fe-block .icon { font-size: 22px; margin-bottom: 6px; }
+  .fe-block .title { font-size: 13px; font-weight: 700; color: #DDE3EA; margin-bottom: 8px; }
+  .fe-block .ops { display: flex; flex-direction: column; gap: 4px; }
+  .op {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    line-height: 1.3;
+  }
+  .op.r  { background: #0F2E1A; color: #4ADE80; border: 1px solid #166534; }
+  .op.w  { background: #0C1A3D; color: #60A5FA; border: 1px solid #1E40AF; }
+  .op.u  { background: #2D1B00; color: #FBBF24; border: 1px solid #92400E; }
+  .op.d  { background: #2D0F0F; color: #F87171; border: 1px solid #991B1B; }
+
+  /* ── ARROW LAYER ── */
+  .arrow-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding: 16px 0;
+  }
+  .arrow-line {
+    width: 2px;
+    height: 48px;
+    background: linear-gradient(to bottom, #2E3F52, #C8531A);
+    margin: 0 auto;
+    position: relative;
+  }
+  .arrow-line::after {
+    content: '▼';
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #C8531A;
+    font-size: 14px;
+  }
+  .sdk-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1E2A38;
+    border: 1.5px solid #C8531A;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #C8531A;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .sdk-badge small {
+    display: block;
+    font-size: 9px;
+    color: #8896A6;
+    font-weight: 600;
+    margin-top: 1px;
+  }
+
+  /* ── FIREBASE LAYER ── */
+  .firebase-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  /* Auth Box */
+  .auth-box {
+    background: #1A1F2B;
+    border: 1.5px solid #F59E0B;
+    border-radius: 16px;
+    padding: 18px;
+    width: 200px;
+    flex-shrink: 0;
+  }
+  .auth-box .box-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #2E3F52;
+  }
+  .auth-box .box-icon { font-size: 20px; }
+  .auth-box .box-title { font-size: 13px; font-weight: 800; color: #F59E0B; }
+  .auth-box .box-sub { font-size: 10px; color: #8896A6; margin-top: 1px; }
+  .method {
+    background: #0F1923;
+    border-radius: 8px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #DDE3EA;
+    border-left: 3px solid #F59E0B;
+  }
+  .method .fn { font-family: 'Courier New', monospace; color: #FDE68A; font-weight: 700; font-size: 10px; }
+  .method .desc { color: #8896A6; font-size: 10px; margin-top: 2px; }
+
+  /* Firestore Box */
+  .firestore-box {
+    background: #1A1F2B;
+    border: 1.5px solid #3B82F6;
+    border-radius: 16px;
+    padding: 18px;
+    flex: 1;
+    max-width: 750px;
+  }
+  .firestore-box .box-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #2E3F52;
+  }
+  .firestore-box .box-icon { font-size: 20px; }
+  .firestore-box .box-title { font-size: 13px; font-weight: 800; color: #60A5FA; }
+  .firestore-box .box-sub { font-size: 10px; color: #8896A6; margin-top: 1px; }
+
+  .collections-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .collection {
+    background: #0F1923;
+    border: 1px solid #2E3F52;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .coll-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2E3F52;
+  }
+  .coll-icon { font-size: 16px; }
+  .coll-name {
+    font-size: 12px;
+    font-weight: 800;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+  }
+  .coll-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+  .field {
+    font-size: 10px;
+    color: #8896A6;
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+  }
+  .field .fname { color: #93C5FD; font-family: 'Courier New', monospace; flex-shrink: 0; }
+  .field .ftype { color: #64748B; font-style: italic; }
+  .coll-ops {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .cop {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .cop.r  { background: #0F2E1A; color: #4ADE80; }
+  .cop.w  { background: #0C1A3D; color: #60A5FA; }
+  .cop.u  { background: #2D1B00; color: #FBBF24; }
+  .cop.d  { background: #2D0F0F; color: #F87171; }
+
+  /* ── FLOW SECTION ── */
+  .flow-section {
+    max-width: 1100px;
+    margin: 36px auto 0;
+    background: #1A1F2B;
+    border: 1.5px solid #2E3F52;
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .flow-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #DDE3EA;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .flows {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .flow-item {
+    background: #0F1923;
+    border-radius: 12px;
+    padding: 14px;
+    border-left: 3px solid #2E3F52;
+  }
+  .flow-item.login { border-left-color: #F59E0B; }
+  .flow-item.book  { border-left-color: #4ADE80; }
+  .flow-item.friend { border-left-color: #A78BFA; }
+  .flow-item.chat  { border-left-color: #60A5FA; }
+  .flow-label {
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #DDE3EA;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-size: 11px;
+    color: #8896A6;
+  }
+  .flow-num {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2E3F52;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #DDE3EA;
+    flex-shrink: 0;
+  }
+  .flow-step code {
+    font-family: 'Courier New', monospace;
+    color: #FDE68A;
+    font-size: 10px;
+    background: #1E2A38;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+
+  /* ── TRANSMISSION BOX ── */
+  .transmission-section {
+    max-width: 1100px;
+    margin: 16px auto 0;
+    background: #1A1F2B;
+    border: 1.5px solid #2E3F52;
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .trans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .trans-item {
+    background: #0F1923;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .trans-icon { font-size: 24px; margin-bottom: 8px; }
+  .trans-title { font-size: 12px; font-weight: 800; color: #DDE3EA; margin-bottom: 6px; }
+  .trans-desc { font-size: 11px; color: #8896A6; line-height: 1.5; }
+
+  @media (max-width: 768px) {
+    .collections-grid { grid-template-columns: repeat(2, 1fr); }
+    .firebase-row { flex-direction: column; align-items: stretch; }
+    .auth-box { width: 100%; }
+    .flows { grid-template-columns: 1fr; }
+    .trans-grid { grid-template-columns: 1fr; }
+    .fe-block { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>🏟️ PlatzFrei – Backend Architektur</h1>
+  <p>Datenfluss vom Frontend zum Firebase Backend</p>
+  <div class="badge">Nur Firebase Datenspeicherung</div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#4ADE80"></div> Lesen (get / query)</div>
+  <div class="leg"><div class="leg-dot" style="background:#60A5FA"></div> Schreiben (add / set)</div>
+  <div class="leg"><div class="leg-dot" style="background:#FBBF24"></div> Aktualisieren (update)</div>
+  <div class="leg"><div class="leg-dot" style="background:#F87171"></div> Löschen (delete)</div>
+</div>
+
+<!-- DIAGRAM -->
+<div class="diagram">
+
+  <!-- LAYER 1: FRONTEND -->
+  <div class="layer-label">① FRONTEND — Browser (HTML + JavaScript)</div>
+  <div class="frontend-row">
+
+    <div class="fe-block">
+      <div class="icon">🔐</div>
+      <div class="title">Anmeldung</div>
+      <div class="ops">
+        <div class="op w">Login / Registrieren</div>
+        <div class="op r">Sitzung prüfen</div>
+        <div class="op d">Abmelden</div>
+      </div>
+    </div>
+
+    <div class="fe-block">
+      <div class="icon">📅</div>
+      <div class="title">Buchungen</div>
+      <div class="ops">
+        <div class="op w">Neuen Platz buchen</div>
+        <div class="op r">Buchungen laden</div>
+        <div class="op u">Freunde einladen</div>
+        <div class="op d">Stornieren</div>
+      </div>
+    </div>
+
+    <div class="fe-block">
+      <div class="icon">👥</div>
+      <div class="title">Freunde</div>
+      <div class="ops">
+        <div class="op r">Nutzer suchen</div>
+        <div class="op w">Anfrage senden</div>
+        <div class="op u">Anfrage annehmen</div>
+        <div class="op d">Freund entfernen</div>
+      </div>
+    </div>
+
+    <div class="fe-block">
+      <div class="icon">💬</div>
+      <div class="title">Chats</div>
+      <div class="ops">
+        <div class="op r">Nachrichten laden</div>
+        <div class="op w">Nachricht senden</div>
+      </div>
+    </div>
+
+    <div class="fe-block">
+      <div class="icon">🫂</div>
+      <div class="title">Gruppen</div>
+      <div class="ops">
+        <div class="op r">Gruppen laden</div>
+        <div class="op w">Gruppe erstellen</div>
+        <div class="op d">Gruppe löschen</div>
+      </div>
+    </div>
+
+    <div class="fe-block">
+      <div class="icon">👤</div>
+      <div class="title">Profil</div>
+      <div class="ops">
+        <div class="op r">Profil laden</div>
+        <div class="op u">Profil speichern</div>
+        <div class="op d">Konto löschen</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ARROW: Frontend → Firebase SDK -->
+  <div class="arrow-row">
+    <div style="width:2px;height:70px;background:linear-gradient(to bottom,#2E3F52,#C8531A);margin:0 auto;position:relative">
+      <span style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);color:#C8531A;font-size:14px">▼</span>
+    </div>
+    <div class="sdk-badge" style="position:absolute;left:50%;transform:translateX(-50%)">
+      Firebase SDK (JS Compat v10)
+      <small>HTTPS · JSON · REST / gRPC</small>
+    </div>
+  </div>
+
+  <!-- LAYER 2: FIREBASE BACKEND -->
+  <div class="layer-label">② FIREBASE BACKEND — Google Cloud</div>
+  <div class="firebase-row">
+
+    <!-- Firebase Auth -->
+    <div class="auth-box">
+      <div class="box-header">
+        <div class="box-icon">🔑</div>
+        <div>
+          <div class="box-title">Firebase Auth</div>
+          <div class="box-sub">Nutzer-Authentifizierung</div>
+        </div>
+      </div>
+
+      <div class="method">
+        <div class="fn">signInWithEmailAndPassword()</div>
+        <div class="desc">Login mit E-Mail &amp; Passwort</div>
+      </div>
+      <div class="method">
+        <div class="fn">createUserWithEmailAndPassword()</div>
+        <div class="desc">Neues Konto registrieren</div>
+      </div>
+      <div class="method">
+        <div class="fn">onAuthStateChanged()</div>
+        <div class="desc">Sitzung automatisch überwachen</div>
+      </div>
+      <div class="method">
+        <div class="fn">signOut()</div>
+        <div class="desc">Benutzer abmelden</div>
+      </div>
+      <div class="method">
+        <div class="fn">currentUser.delete()</div>
+        <div class="desc">Konto löschen</div>
+      </div>
+      <div class="method">
+        <div class="fn">currentUser.updateProfile()</div>
+        <div class="desc">Anzeigename ändern</div>
+      </div>
+    </div>
+
+    <!-- Firestore -->
+    <div class="firestore-box">
+      <div class="box-header">
+        <div class="box-icon">🗄️</div>
+        <div>
+          <div class="box-title">Cloud Firestore</div>
+          <div class="box-sub">NoSQL Dokumenten-Datenbank · Echtzeit-fähig</div>
+        </div>
+      </div>
+
+      <div class="collections-grid">
+
+        <!-- users -->
+        <div class="collection">
+          <div class="coll-header">
+            <div class="coll-icon">👤</div>
+            <div class="coll-name">users/</div>
+          </div>
+          <div class="coll-fields">
+            <div class="field"><span class="fname">id</span><span class="ftype">uid (Auth)</span></div>
+            <div class="field"><span class="fname">name</span><span class="ftype">Vollständiger Name</span></div>
+            <div class="field"><span class="fname">u</span><span class="ftype">Benutzername</span></div>
+            <div class="field"><span class="fname">email</span><span class="ftype">E-Mail Adresse</span></div>
+            <div class="field"><span class="fname">avatar</span><span class="ftype">Emoji / Bild-URL</span></div>
+            <div class="field"><span class="fname">createdAt</span><span class="ftype">Timestamp</span></div>
+          </div>
+          <div class="coll-ops">
+            <div class="cop r">.get()</div>
+            <div class="cop w">.set()</div>
+            <div class="cop u">.update()</div>
+            <div class="cop d">.delete()</div>
+            <div class="cop r">.where("u")</div>
+          </div>
+        </div>
+
+        <!-- bookings -->
+        <div class="collection">
+          <div class="coll-header">
+            <div class="coll-icon">📅</div>
+            <div class="coll-name">bookings/</div>
+          </div>
+          <div class="coll-fields">
+            <div class="field"><span class="fname">uid</span><span class="ftype">Nutzer-ID</span></div>
+            <div class="field"><span class="fname">city</span><span class="ftype">Stadt</span></div>
+            <div class="field"><span class="fname">vname</span><span class="ftype">Anlage</span></div>
+            <div class="field"><span class="fname">vtype</span><span class="ftype">Sportart</span></div>
+            <div class="field"><span class="fname">dt</span><span class="ftype">Datum &amp; Uhrzeit</span></div>
+            <div class="field"><span class="fname">dur</span><span class="ftype">Dauer in Min.</span></div>
+            <div class="field"><span class="fname">friends</span><span class="ftype">uid[] Eingeladene</span></div>
+            <div class="field"><span class="fname">cancelled</span><span class="ftype">Boolean</span></div>
+          </div>
+          <div class="coll-ops">
+            <div class="cop w">.add()</div>
+            <div class="cop r">.where("uid")</div>
+            <div class="cop u">.update()</div>
+            <div class="cop d">.delete()</div>
+          </div>
+        </div>
+
+        <!-- friendRequests -->
+        <div class="collection">
+          <div class="coll-header">
+            <div class="coll-icon">🤝</div>
+            <div class="coll-name">friendRequests/</div>
+          </div>
+          <div class="coll-fields">
+            <div class="field"><span class="fname">from</span><span class="ftype">Absender-uid</span></div>
+            <div class="field"><span class="fname">fromName</span><span class="ftype">Name Absender</span></div>
+            <div class="field"><span class="fname">to</span><span class="ftype">Empfänger-uid</span></div>
+            <div class="field"><span class="fname">toName</span><span class="ftype">Name Empfänger</span></div>
+            <div class="field"><span class="fname">status</span><span class="ftype">"pending" / "accepted"</span></div>
+            <div class="field"><span class="fname">ts</span><span class="ftype">ISO Timestamp</span></div>
+          </div>
+          <div class="coll-ops">
+            <div class="cop w">.add()</div>
+            <div class="cop r">.where("from")</div>
+            <div class="cop r">.where("to")</div>
+            <div class="cop u">.update(status)</div>
+            <div class="cop d">.delete()</div>
+          </div>
+        </div>
+
+        <!-- chats -->
+        <div class="collection">
+          <div class="coll-header">
+            <div class="coll-icon">💬</div>
+            <div class="coll-name">chats/</div>
+          </div>
+          <div class="coll-fields">
+            <div class="field"><span class="fname">Key</span><span class="ftype">uid_uid (sortiert)</span></div>
+            <div class="field"><span class="fname">messages</span><span class="ftype">Array of objects</span></div>
+            <div class="field"><span class="fname">  .f</span><span class="ftype">Absender-uid</span></div>
+            <div class="field"><span class="fname">  .t</span><span class="ftype">Nachrichtentext</span></div>
+            <div class="field"><span class="fname">  .ts</span><span class="ftype">Uhrzeit (String)</span></div>
+            <div class="field"><span class="fname">  .rd</span><span class="ftype">Gelesen (Boolean)</span></div>
+            <div class="field"><span class="fname">updatedAt</span><span class="ftype">ServerTimestamp</span></div>
+          </div>
+          <div class="coll-ops">
+            <div class="cop r">.doc(key).get()</div>
+            <div class="cop w">.doc(key).set()</div>
+          </div>
+        </div>
+
+        <!-- groups -->
+        <div class="collection">
+          <div class="coll-header">
+            <div class="coll-icon">👥</div>
+            <div class="coll-name">groups/</div>
+          </div>
+          <div class="coll-fields">
+            <div class="field"><span class="fname">name</span><span class="ftype">Gruppenname</span></div>
+            <div class="field"><span class="fname">creator</span><span class="ftype">Ersteller-uid</span></div>
+            <div class="field"><span class="fname">members</span><span class="ftype">uid[] alle Mitglieder</span></div>
+            <div class="field"><span class="fname">at</span><span class="ftype">ISO Timestamp</span></div>
+          </div>
+          <div class="coll-ops">
+            <div class="cop w">.add()</div>
+            <div class="cop r">.where("members")</div>
+            <div class="cop d">.delete()</div>
+          </div>
+        </div>
+
+        <!-- groupChats -->
+        <div class="collection">
+          <div class="coll-header">
+            <div class="coll-icon">🫂</div>
+            <div class="coll-name">groupChats/</div>
+          </div>
+          <div class="coll-fields">
+            <div class="field"><span class="fname">Key</span><span class="ftype">Gruppen-ID</span></div>
+            <div class="field"><span class="fname">messages</span><span class="ftype">Array of objects</span></div>
+            <div class="field"><span class="fname">  .f</span><span class="ftype">Absender-uid / "system"</span></div>
+            <div class="field"><span class="fname">  .t</span><span class="ftype">Nachrichtentext</span></div>
+            <div class="field"><span class="fname">  .senderName</span><span class="ftype">Anzeigename</span></div>
+            <div class="field"><span class="fname">  .ts</span><span class="ftype">Uhrzeit (String)</span></div>
+            <div class="field"><span class="fname">updatedAt</span><span class="ftype">ServerTimestamp</span></div>
+          </div>
+          <div class="coll-ops">
+            <div class="cop r">.doc(gid).get()</div>
+            <div class="cop w">.doc(gid).set()</div>
+            <div class="cop d">.delete()</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ÜBERTRAGUNGSWEG -->
+<div class="transmission-section">
+  <div class="flow-title">📡 Wie werden die Daten übertragen?</div>
+  <div class="trans-grid">
+    <div class="trans-item">
+      <div class="trans-icon">🔒</div>
+      <div class="trans-title">Verschlüsselung (TLS/HTTPS)</div>
+      <div class="trans-desc">Alle Anfragen laufen über HTTPS. Die Verbindung zwischen App und Firebase ist mit TLS verschlüsselt. Keine Daten im Klartext.</div>
+    </div>
+    <div class="trans-item">
+      <div class="trans-icon">📦</div>
+      <div class="trans-title">Format (JSON)</div>
+      <div class="trans-desc">Daten werden als JSON übertragen. Das Firebase SDK wandelt JS-Objekte automatisch um. Bei Lesen kommen die Daten als <code style="background:#1E2A38;padding:1px 4px;border-radius:3px;font-size:10px">DocumentSnapshot</code> zurück.</div>
+    </div>
+    <div class="trans-item">
+      <div class="trans-icon">⚡</div>
+      <div class="trans-title">Protokoll (gRPC / REST)</div>
+      <div class="trans-desc">Firestore nutzt intern gRPC für schnelle bidirektionale Kommunikation. Im Browser wird automatisch auf WebSocket / HTTP/2 zurückgegriffen.</div>
+    </div>
+  </div>
+</div>
+
+<!-- WICHTIGSTE ABLÄUFE -->
+<div class="flow-section">
+  <div class="flow-title">🔄 Die 4 wichtigsten Abläufe im Detail</div>
+  <div class="flows">
+
+    <!-- LOGIN -->
+    <div class="flow-item login">
+      <div class="flow-label">🔐 Login &amp; Session</div>
+      <div class="flow-step"><div class="flow-num">1</div><span>Nutzer gibt E-Mail + Passwort ein</span></div>
+      <div class="flow-step"><div class="flow-num">2</div><span><code>auth.signInWithEmailAndPassword()</code> → Firebase Auth</span></div>
+      <div class="flow-step"><div class="flow-num">3</div><span><code>auth.onAuthStateChanged()</code> empfängt den Nutzer automatisch</span></div>
+      <div class="flow-step"><div class="flow-num">4</div><span><code>db.collection("users").doc(uid).get()</code> lädt das Profil</span></div>
+      <div class="flow-step"><div class="flow-num">5</div><span>Buchungen, Freunde &amp; Gruppen werden parallel geladen</span></div>
+    </div>
+
+    <!-- BUCHUNG -->
+    <div class="flow-item book">
+      <div class="flow-label">📅 Platz buchen</div>
+      <div class="flow-step"><div class="flow-num">1</div><span>Nutzer wählt Stadt, Platz, Dauer &amp; Uhrzeit</span></div>
+      <div class="flow-step"><div class="flow-num">2</div><span><code>db.collection("bookings").add(bkData)</code> → Dokument-ID zurück</span></div>
+      <div class="flow-step"><div class="flow-num">3</div><span>Lokal in <code>S.bookings[]</code> gespeichert (kein erneuter Load)</span></div>
+      <div class="flow-step"><div class="flow-num">4</div><span>Eingeladene Freunde: Nachricht via <code>chats/</code> oder <code>groupChats/</code></span></div>
+      <div class="flow-step"><div class="flow-num">5</div><span>Bestätigungsdialog wird lokal gerendert</span></div>
+    </div>
+
+    <!-- FREUNDE -->
+    <div class="flow-item friend">
+      <div class="flow-label">👥 Freundschaftsanfrage</div>
+      <div class="flow-step"><div class="flow-num">1</div><span>Nutzer sucht: <code>db.collection("users").get()</code> → Filtert lokal</span></div>
+      <div class="flow-step"><div class="flow-num">2</div><span>Anfrage: <code>db.collection("friendRequests").add({from, to, status:"pending"})</code></span></div>
+      <div class="flow-step"><div class="flow-num">3</div><span>Empfänger sieht Anfrage beim nächsten Laden (alle 30 Sek. Refresh)</span></div>
+      <div class="flow-step"><div class="flow-num">4</div><span>Annehmen: <code>.doc(id).update({status:"accepted"})</code></span></div>
+      <div class="flow-step"><div class="flow-num">5</div><span>Ablehnen / Entfernen: <code>.doc(id).delete()</code></span></div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="flow-item chat">
+      <div class="flow-label">💬 Nachricht senden</div>
+      <div class="flow-step"><div class="flow-num">1</div><span>Chat öffnen: Key = <code>[uid_A, uid_B].sort().join("_")</code></span></div>
+      <div class="flow-step"><div class="flow-num">2</div><span>Laden: <code>db.collection("chats").doc(key).get()</code></span></div>
+      <div class="flow-step"><div class="flow-num">3</div><span>Neue Nachricht wird an <code>messages[]</code> Array angehängt</span></div>
+      <div class="flow-step"><div class="flow-num">4</div><span>Speichern: <code>db.collection("chats").doc(key).set({messages, updatedAt})</code></span></div>
+      <div class="flow-step"><div class="flow-num">5</div><span>Lokaler Cache in <code>_realChats{}</code> bleibt aktuell</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:24px;font-size:11px;color:#46566B">
+  PlatzFrei · Firebase Compat SDK v10 · Firestore · Firebase Auth · Stand: Juni 2026
+</div>
+
+</body>
+</html>

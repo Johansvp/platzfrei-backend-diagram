@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlatzFrei – Flow: Nachricht senden</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0F1923;color:#fff;padding:32px 20px 60px;min-height:100vh}
+
+.header{text-align:center;margin-bottom:40px}
+.header .tag{display:inline-block;background:#60A5FA;color:#0F1923;font-size:11px;font-weight:800;padding:4px 14px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.header h1{font-size:26px;font-weight:800;color:#fff;margin-bottom:6px}
+.header p{color:#8896A6;font-size:13px}
+
+.diagram{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:0}
+
+.col-headers{display:grid;grid-template-columns:1fr 220px 1fr;gap:0;margin-bottom:16px}
+.col-h{text-align:center;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:10px 16px;border-radius:10px}
+.col-h.fe{background:#1E2A38;color:#60A5FA;border:1.5px solid #2E3F52}
+.col-h.fb{background:#0C1A3D;color:#60A5FA;border:1.5px solid #1E40AF}
+
+.exchange{display:grid;grid-template-columns:1fr 220px 1fr;align-items:center;margin-bottom:4px}
+
+.fe-box{background:#1E2A38;border:1.5px solid #2E3F52;border-radius:12px;padding:13px 15px;font-size:12px;color:#DDE3EA;line-height:1.5;min-height:56px;display:flex;align-items:flex-start}
+.fe-box.active{border-color:#60A5FA;background:#0C1A3D}
+.fe-box.result{border-color:#4ADE80;background:#0F2E1A}
+.fe-box.compute{border-color:#FBBF24;background:#2D1B00}
+.fe-box.final{border-color:#A78BFA;background:#1A0F2E}
+.fb-box{border-radius:12px;padding:13px 15px;font-size:12px;line-height:1.5;min-height:56px;display:flex;align-items:flex-start}
+.fb-box.firestore{background:#0C1A3D;border:1.5px solid #3B82F6;color:#93C5FD}
+.fb-box.empty-box{background:transparent;border:none}
+
+.arrow-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px;gap:4px}
+.arrow-label{font-family:'Courier New',monospace;font-size:10px;text-align:center;padding:4px 8px;border-radius:6px;line-height:1.4;max-width:200px;word-break:break-all}
+.arrow-label.req{background:#0F2A00;color:#4ADE80;border:1px solid #166534}
+.arrow-label.res{background:#1A0A00;color:#FBBF24;border:1px solid #92400E}
+.arrow-body{display:flex;align-items:center;width:100%}
+.arrow-line{height:2px;flex:1}
+.arrow-line.req{background:linear-gradient(to right,#1E3A1E,#4ADE80)}
+.arrow-line.res{background:linear-gradient(to left,#3A1A00,#FBBF24)}
+.arrow-head.right{color:#4ADE80;font-size:14px;flex-shrink:0}
+.arrow-head.left{color:#FBBF24;font-size:14px;flex-shrink:0}
+
+.connector{display:flex;justify-content:center;align-items:center;height:28px;position:relative}
+.connector::before{content:'';position:absolute;left:50%;top:0;width:2px;height:100%;background:#2E3F52;transform:translateX(-50%)}
+.connector-dot{width:8px;height:8px;border-radius:50%;background:#2E3F52;position:relative;z-index:1}
+
+.step-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#2E3F52;font-size:10px;font-weight:800;color:#DDE3EA;flex-shrink:0;margin-right:8px;margin-top:1px}
+.note{background:#1A1F2B;border:1px solid #2E3F52;border-radius:10px;padding:10px 14px;font-size:11px;color:#8896A6;line-height:1.5;margin-top:4px}
+.note strong{color:#DDE3EA}
+code{font-family:'Courier New',monospace;background:#1E2A38;padding:1px 5px;border-radius:4px;font-size:10px;color:#FDE68A}
+
+.data-block{background:#0F1923;border:1px solid #2E3F52;border-radius:8px;padding:8px 10px;font-family:'Courier New',monospace;font-size:10px;color:#93C5FD;line-height:1.6;margin-top:6px;width:100%}
+.data-key{color:#93C5FD}
+.data-val{color:#FDE68A}
+.key-box{background:#2D1B00;border:1px solid #92400E;border-radius:8px;padding:8px 12px;font-family:'Courier New',monospace;font-size:11px;color:#FBBF24;text-align:center;margin:0 auto;width:fit-content}
+
+.group-divider{background:#1A1F2B;border:1px solid #2E3F52;border-radius:10px;padding:8px 14px;font-size:11px;color:#A78BFA;font-weight:700;text-align:center;margin:4px 0}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="tag">Flow 3 von 3</div>
+  <h1>💬 Nachricht senden</h1>
+  <p>Datenfluss vom Tippen bis zur gespeicherten Nachricht in Firestore</p>
+</div>
+
+<div class="diagram">
+
+  <div class="col-headers">
+    <div class="col-h fe">Frontend (Browser)</div>
+    <div></div>
+    <div class="col-h fb">Firestore (Backend)</div>
+  </div>
+
+  <!-- Schritt 1: Chat öffnen -->
+  <div class="exchange">
+    <div class="fe-box active">
+      <span class="step-n">1</span>
+      <div>
+        Nutzer öffnet einen Chat mit einem Freund<br>
+        <span style="font-size:11px;color:#8896A6">openChat(fid, "real") wird aufgerufen</span>
+      </div>
+    </div>
+    <div class="arrow-col">
+      <div class="arrow-label req">db.collection("chats").doc(key).get()</div>
+      <div class="arrow-body">
+        <div class="arrow-line req"></div>
+        <div class="arrow-head right">▶</div>
+      </div>
+    </div>
+    <div class="fb-box firestore">
+      <span class="step-n">🗄️</span>
+      <div>
+        <strong>Firestore: chats/</strong><br>
+        Lädt bestehende Konversation
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:center;align-items:center;padding:8px 0;flex-direction:column;gap:4px">
+    <div style="font-size:10px;color:#8896A6;font-family:monospace">Chat-Key wird berechnet:</div>
+    <div class="key-box">["uid_A", "uid_B"].sort().join("_") → "uid_A_uid_B"</div>
+    <div style="font-size:10px;color:#8896A6">Gleicher Key für beide Seiten – egal wer schreibt</div>
+  </div>
+
+  <!-- Schritt 2: Nachrichten Response -->
+  <div class="exchange">
+    <div class="fe-box result">
+      <span class="step-n">2</span>
+      <div>
+        Chat wird angezeigt · Nachrichten als gelesen markiert<br>
+        <code>msgs.forEach(m =&gt; m.rd = true)</code>
+        <div class="data-block" style="margin-top:6px">
+          messages: [<br>
+          &nbsp;&nbsp;&#123; <span class="data-key">f</span>: <span class="data-val">"uid_freund"</span>, <span class="data-key">t</span>: <span class="data-val">"Hey!"</span>, <span class="data-key">ts</span>: <span class="data-val">"17:43"</span> &#125;,<br>
+          &nbsp;&nbsp;&#123; <span class="data-key">f</span>: <span class="data-val">"uid_ich"</span>, <span class="data-key">t</span>: <span class="data-val">"Buchen?"</span>, <span class="data-key">ts</span>: <span class="data-val">"17:44"</span> &#125;<br>
+          ]
+        </div>
+      </div>
+    </div>
+    <div class="arrow-col">
+      <div class="arrow-body">
+        <div class="arrow-head left">◀</div>
+        <div class="arrow-line res"></div>
+      </div>
+      <div class="arrow-label res">DocumentSnapshot: &#123; messages: [...] &#125;</div>
+    </div>
+    <div class="fb-box firestore">
+      <span class="step-n">✓</span>
+      <div>Gibt vollständiges Dokument mit <strong>messages[]</strong> zurück</div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-dot"></div></div>
+
+  <!-- Schritt 3: Nachricht tippen -->
+  <div class="exchange">
+    <div class="fe-box compute">
+      <span class="step-n">3</span>
+      <div>
+        Nutzer schreibt Text, drückt Senden → <code>sendChat()</code><br>
+        Neues Nachrichtenobjekt wird erstellt &amp; lokal angehängt:
+        <div class="data-block" style="margin-top:6px">
+          &#123;<br>
+          &nbsp;&nbsp;<span class="data-key">f</span>: <span class="data-val">"uid_ich"</span>,<br>
+          &nbsp;&nbsp;<span class="data-key">senderName</span>: <span class="data-val">"Max"</span>,<br>
+          &nbsp;&nbsp;<span class="data-key">t</span>: <span class="data-val">"Ja, 18 Uhr?"</span>,<br>
+          &nbsp;&nbsp;<span class="data-key">ts</span>: <span class="data-val">"17:45"</span>,<br>
+          &nbsp;&nbsp;<span class="data-key">st</span>: <span class="data-val">1751296312000</span>,<br>
+          &nbsp;&nbsp;<span class="data-key">rd</span>: <span class="data-val">true</span><br>
+          &#125;
+        </div>
+      </div>
+    </div>
+    <div class="arrow-col">
+      <div style="font-size:10px;color:#8896A6;text-align:center">Lokal sofort sichtbar<br>dann speichern →</div>
+    </div>
+    <div class="fb-box empty-box"></div>
+  </div>
+
+  <div class="connector"><div class="connector-dot"></div></div>
+
+  <!-- Schritt 4: Speichern -->
+  <div class="exchange">
+    <div class="fe-box active">
+      <span class="step-n">4</span>
+      <div>
+        Gesamtes messages-Array (alt + neu) an Firestore senden<br>
+        <span style="font-size:11px;color:#8896A6">saveRealChat(fid, messages)</span>
+      </div>
+    </div>
+    <div class="arrow-col">
+      <div class="arrow-label req">db.collection("chats").doc(key).set(&#123; messages, updatedAt: serverTimestamp() &#125;)</div>
+      <div class="arrow-body">
+        <div class="arrow-line req"></div>
+        <div class="arrow-head right">▶</div>
+      </div>
+    </div>
+    <div class="fb-box firestore">
+      <span class="step-n">💾</span>
+      <div>
+        <strong>Firestore: chats/key</strong><br>
+        Überschreibt Dokument mit vollem Array<br>
+        <code style="background:#0F1923;color:#FBBF24">updatedAt = serverTimestamp()</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-dot"></div></div>
+
+  <!-- Schritt 5: Bestätigung -->
+  <div class="exchange">
+    <div class="fe-box result">
+      <span class="step-n">5</span>
+      <div>
+        Lokaler Cache <code>_realChats[fid]</code> ist aktuell<br>
+        Chat-Liste wird mit <code>renderChatList()</code> aktualisiert<br>
+        <span style="font-size:11px;color:#8896A6">Chat-Vorschau und Zeitstempel werden sofort neu gerendert</span>
+      </div>
+    </div>
+    <div class="arrow-col">
+      <div class="arrow-body">
+        <div class="arrow-head left">◀</div>
+        <div class="arrow-line res"></div>
+      </div>
+      <div class="arrow-label res">WriteResult (Erfolg / Fehler)</div>
+    </div>
+    <div class="fb-box firestore">
+      <span class="step-n">✓</span>
+      <div>Bestätigt: Dokument gespeichert</div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="connector-dot"></div></div>
+
+  <!-- Schritt 6: Final -->
+  <div class="exchange">
+    <div class="fe-box final">
+      <span class="step-n">🎉</span>
+      <div>
+        <strong>Nachricht sichtbar</strong> – UI zeigt neue Nachricht<br>
+        <span style="font-size:11px;color:#C4B5FD">Freund sieht sie beim nächsten Öffnen des Chats (Polling alle 30 Sek. oder bei Chat-Öffnung)</span>
+      </div>
+    </div>
+    <div class="arrow-col"></div>
+    <div class="fb-box empty-box"></div>
+  </div>
+
+  <div style="margin-top:24px" class="note">
+    <strong>Gruppen-Chat:</strong> Läuft identisch ab, aber über <code>db.collection("groupChats").doc(gid).set(...)</code>. Nachrichten haben zusätzlich ein <code>senderName</code>-Feld, da mehrere Personen schreiben. System-Nachrichten haben <code>f: "system"</code> und erscheinen zentriert ohne Absender.
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:32px;font-size:11px;color:#46566B">
+  PlatzFrei · Firestore · Flow 3/3
+</div>
+
+</body>
+</html>
